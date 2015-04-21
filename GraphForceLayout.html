@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- //University of Illinois/NCSA Open Source License>
+Copyright (c) 2015 University of Illinois
+All rights reserved.
+
+Developed by: 		Eric Shaffer
+                  Department of Computer Science
+                  University of Illinois at Urbana Champaign
+
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+documentation files (the "Software"), to deal with the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and
+to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+Redistributions of source code must retain the above copyright notice, this list of conditions and the following
+disclaimers.Redistributions in binary form must reproduce the above copyright notice, this list
+of conditions and the following disclaimers in the documentation and/or other materials provided with the distribution.
+Neither the names of <Name of Development Group, Name of Institution>, nor the names of its contributors may be
+used to endorse or promote products derived from this Software without specific prior written permission.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS WITH THE SOFTWARE. -->
+
+
+
+<head>
+<meta charset="utf-8">
+    <title>CS 519: Scientific Visualization: Force-Directed Graph Layout</title>
+</head>
+<body onload="render()">
+  <form id="input_form">
+    <fieldset>
+      Maximum movement <input type="text" id="t" value="1.0"><br><br>
+      Damping value <input type="text" id="delta_t" value="0.0"><br><br>
+      Number of iterations <input type="text" id="num_iter" value="10000"><br><br>
+      Use default k value <input type="checkbox" id="default_k"checked><br>
+      User-defined k value<input type="text" id="k" value="1"><br><br>
+      Point size<input type="text" id="v_size" value="5"><br><br>
+      Edge thickness<input type="text" id="e_size" value="1"><br><br>
+      Graph<input type="radio" name="graph" id="random" value="random" checked> Random cycle graph
+           <input type="radio" name="graph" id="base" value="base"> Original base graph<br>
+    </fieldset>
+  </form>
+  <button onclick="render()">Render</button>
+  <canvas id ="example" width ="600" height ="600" style="border:5px solid #FFFFFF;">
+    Please use a browser that supports "canvas"
+  </canvas >
+<script>
+
+var width = 600;
+var height = 600;
+	
+var base_graph = {
+    "nodes": [  { "x": 208.992345, "y": 273.053211 },
+                { "x": 595.98896,  "y":  56.377057 },
+                { "x": 319.568434, "y": 278.523637 },
+                { "x": 214.494264, "y": 214.893585 },
+                { "x": 482.664139, "y": 340.386773 },
+                { "x":  84.078465, "y": 192.021902 },
+                { "x": 196.952261, "y": 370.798667 },
+                { "x": 107.358165, "y": 435.15643  },
+                { "x": 401.168523, "y": 443.407779 },
+                { "x": 508.368779, "y": 386.665811 },
+                { "x": 355.93773,  "y": 460.158711 },
+                { "x": 283.630624, "y":  87.898162 },
+                { "x": 194.771218, "y": 436.366028 },
+                { "x": 477.520013, "y": 337.547331 },
+                { "x": 572.98129,  "y": 453.668459 },
+                { "x": 106.717817, "y": 235.990363 },
+                { "x": 265.064649, "y": 396.904945 },
+                { "x": 452.719997, "y": 137.886092 }
+            ],
+    "edges": [  { "target": 11, "source":  0 },
+                { "target":  3, "source":  0 },
+                { "target": 10, "source":  0 },
+                { "target": 16, "source":  0 },
+                { "target":  1, "source":  0 },
+                { "target":  3, "source":  0 },
+                { "target":  9, "source":  0 },
+                { "target":  5, "source":  0 },
+                { "target": 11, "source":  0 },
+                { "target": 13, "source":  0 },
+                { "target": 16, "source":  0 },
+                { "target":  3, "source":  1 },
+                { "target":  9, "source":  1 },
+                { "target": 12, "source":  1 },
+                { "target":  4, "source":  2 },
+                { "target":  6, "source":  2 },
+                { "target":  8, "source":  2 },
+                { "target": 13, "source":  2 },
+                { "target": 10, "source":  3 },
+                { "target": 16, "source":  3 },
+                { "target":  9, "source":  3 },
+                { "target":  7, "source":  3 },
+                { "target": 11, "source":  5 },
+                { "target": 13, "source":  5 },
+                { "target": 12, "source":  5 },
+                { "target":  8, "source":  6 },
+                { "target": 13, "source":  6 },
+                { "target": 10, "source":  7 },
+                { "target": 11, "source":  7 },
+                { "target": 17, "source":  8 },
+                { "target": 13, "source":  8 },
+                { "target": 11, "source": 10 },
+                { "target": 16, "source": 10 },
+                { "target": 13, "source": 11 },
+                { "target": 14, "source": 12 },
+                { "target": 14, "source": 12 },
+                { "target": 14, "source": 12 },
+                { "target": 15, "source": 12 },
+                { "target": 16, "source": 12 },
+                { "target": 15, "source": 14 },
+                { "target": 16, "source": 14 },
+                { "target": 15, "source": 14 },
+                { "target": 16, "source": 15 },
+                { "target": 16, "source": 15 },
+                { "target": 17, "source": 16 }
+            ]
+
+    };
+
+function random_cycle(n,lim_x,lim_y) {
+  var edges = [];
+  for (var i = 0; i < n; i++) {
+    edge = {"target": (i + 1) % n, "source": i};
+    edges.push(edge);	
+  }
+  var nodes = [];
+  for (var i = 0; i < n; i++) {
+    var rand_x = Math.random() * lim_x;
+    var rand_y = Math.random() * lim_y;
+    node = {"x": rand_x, "y": rand_y};
+    nodes.push(node);	
+  }
+  var g = {"nodes": nodes, "edges": edges};
+  return g;
+}
+
+function base_graph_copy() {
+  var nodes = base_graph["nodes"]
+  var edges = base_graph["edges"]
+
+  var new_edges = [];
+  for (var i = 0; i < edges.length; i++) {
+    var edge = edges[i];
+    new_edges.push(edge);	
+  }
+  var new_nodes = [];
+  for (var i = 0; i < nodes.length; i++) {
+    var node = nodes[i];
+    new_nodes.push(node);	
+  }
+
+  var new_graph = {"nodes": new_nodes, "edges": new_edges};
+  return new_graph;
+}
+
+//------------------------------------------------------
+// Change these functions
+
+function draw_graph(ctx,graph) {
+	var nodes = graph["nodes"]
+        var edges = graph["edges"]
+
+
+            // Draw the edges
+        for (var i=0;i<edges.length;i++) {
+        	var e = edges[i];
+                var vidx=e["source"]
+                x1 = nodes[vidx]["x"];
+                y1 = nodes[vidx]["y"];
+                vidx=e["target"]
+                x2 = nodes[vidx]["x"];
+                y2 = nodes[vidx]["y"];
+
+                ctx.beginPath();
+                ctx.moveTo(x1,y1);
+	            ctx.lineTo(x2,y2);
+                ctx.lineWidth = parseFloat(document.getElementById("e_size").value);
+                ctx.strokeStyle = '#000000';
+                ctx.stroke();
+            }
+             // Draw the vertices
+            for (var i=0;i<nodes.length;i++) {
+                var node = nodes[i]
+                var radius = parseFloat(document.getElementById("v_size").value);
+                x = node["x"];
+                y = node["y"];
+
+                ctx.beginPath();
+                ctx.arc(x,y,radius,0,2*Math.PI);
+                ctx.fillStyle = '#FF0000';
+                ctx.fill();
+
+            }
+
+        }
+
+function square(value) {
+  return value * value;
+}
+		
+function norm_2d(vec) {
+  return Math.sqrt(square(vec[0]) + square(vec[1]));
+}
+		
+function normalize_2d(vec) {
+  var norm = norm_2d(vec);
+  if (norm < 1e-8) {
+    return [0.0, 0.0];
+  }
+  return [vec[0] / norm, vec[1] / norm];
+}
+		
+function update_positions(graph, t) {
+  var nodes = graph["nodes"]
+  var edges = graph["edges"]
+			
+  displacement = []
+  for (var i = 0; i < nodes.length; i++) {
+    displacement.push([0.0, 0.0])
+  }
+		  
+  for (var idx_1 = 0; idx_1 + 1 < nodes.length; idx_1++) {
+    for (var idx_2 = idx_1 + 1; idx_2 < nodes.length; idx_2++) {
+      var node_1 = nodes[idx_1]
+      var node_2 = nodes[idx_2]
+      var p_1 = [node_1["x"], node_1["y"]]
+      var p_2 = [node_2["x"], node_2["y"]]
+      var p_12 = [p_1[0] - p_2[0], p_1[1] - p_2[1]]
+      var length = norm_2d(p_12)
+      var k
+      if (document.getElementById("default_k").checked) {
+        k = Math.sqrt(width * height) / nodes.length;
+      } else {
+        k = parseFloat(document.getElementById("k").value)
+      }
+      var lambda = square(k / length)
+      var offset = [p_12[0] * lambda, p_12[1] * lambda]
+      displacement[idx_1][0] += offset[0]
+      displacement[idx_1][1] += offset[1]
+      displacement[idx_2][0] -= offset[0]
+      displacement[idx_2][1] -= offset[1]
+    }
+  }
+		  
+  for (var idx = 0; idx < edges.length; idx++) {
+    var e = edges[idx];
+    var idx_1 = e["source"]
+    var idx_2 = e["target"]
+			
+    var node_1 = nodes[idx_1]
+    var node_2 = nodes[idx_2]
+    var p_1 = [node_1["x"], node_1["y"]]
+    var p_2 = [node_2["x"], node_2["y"]]
+    var p_12 = [p_1[0] - p_2[0], p_1[1] - p_2[1]]
+    var length = norm_2d(p_12)
+    var k
+    if (document.getElementById("default_k").checked) {
+      k = Math.sqrt(width * height) / nodes.length;
+    } else {
+      k = parseFloat(document.getElementById("k").value)
+    }
+    var lambda = length / k
+    var offset = [p_12[0] * lambda, p_12[1] * lambda]
+    displacement[idx_1][0] -= offset[0]
+    displacement[idx_1][1] -= offset[1]
+    displacement[idx_2][0] += offset[0]
+    displacement[idx_2][1] += offset[1]
+  }
+		  
+  console.log(nodes.length)
+		  
+  for (var p = 0; p < nodes.length; p++) {
+    disp = [displacement[p][0], displacement[p][1]]
+    length = norm_2d(disp)
+    if (length > t) {
+      length = t
+    }
+    disp = normalize_2d(disp)
+		  
+    graph["nodes"][p]["x"] += disp[0] * length
+    graph["nodes"][p]["y"] += disp[1] * length
+			
+    if (graph["nodes"][p]["x"] < 0) {
+      graph["nodes"][p]["x"] = 0
+    }
+    if (graph["nodes"][p]["y"] < 0) {
+      graph["nodes"][p]["y"] = 0
+    }
+    if (graph["nodes"][p]["x"] > width) {
+      graph["nodes"][p]["x"] = width
+    }
+    if (graph["nodes"][p]["y"] > height) {
+      graph["nodes"][p]["y"] = height
+    }
+  }
+}
+
+function render(){
+  var graph; 
+  var canvas = document.getElementById('example');
+  if (!canvas) {
+    console.log(' Failed to retrieve the < canvas > element');
+    return false;
+  } else {
+    console.log(' Got < canvas > element ');
+  }
+
+  // Get the rendering context for 2DCG <- (2)
+  var ctx = canvas.getContext('2d');
+
+  var num_iterations = parseInt(document.getElementById("num_iter").value)
+  var start_t = parseFloat(document.getElementById("t").value)
+  var delta_t = parseFloat(document.getElementById("delta_t").value)
+
+  console.log('Started ' + num_iterations)
+  if (document.getElementById("base").checked) {
+    graph = base_graph_copy();
+  } else {
+    graph = random_cycle(10, width, height);
+  }
+	
+  for (var i = 0; i < num_iterations; i++) {
+    console.log('iter' + i)
+	
+    update_positions(graph, start_t)
+    start_t -= delta_t
+    if (start_t < 0.0) {
+      break
+    }
+  }
+	
+  console.log('end')
+  ctx.clearRect ( 0 , 0 , canvas.width, canvas.height );
+  draw_graph(ctx,graph);
+}
+
+</script>
+</body>
+</html>
+
+
